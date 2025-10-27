@@ -5,7 +5,14 @@ receivers:
         include_metadata: true
         endpoint: 0.0.0.0:4317
         auth:
-          authenticator: mtls
+          authenticator: mtlsauth
+        tls:
+          client_ca_file: certs/client_ca.pem
+          cert_file: certs/server.pem
+          key_file: certs/server-key.pem
+      http:
+        auth:
+          authenticator: mtlsauth
         tls:
           client_ca_file: certs/client_ca.pem
           cert_file: certs/server.pem
@@ -16,10 +23,11 @@ exporters:
 processors:
   vardumpprocessor:
 extensions:
-  mtls:
+  mtlsauth:
+    require_cert: true
 service:
   extensions:
-    - mtls
+    - mtlsauth
   pipelines:
     logs:
       receivers: [otlp]

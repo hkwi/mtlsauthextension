@@ -20,7 +20,7 @@ type Config struct {
 
 func NewFactory() extension.Factory {
 	return extension.NewFactory(
-		component.MustNewType("mtls"),
+		component.MustNewType("mtlsauth"),
 		func() component.Config {
 			return Config{
 				RequireCert: true,
