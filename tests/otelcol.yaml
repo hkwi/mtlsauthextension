@@ -11,8 +11,11 @@ receivers:
           cert_file: certs/server.pem
           key_file: certs/server-key.pem
       http:
-        auth:
-          authenticator: mtlsauth
+        ## Use middleware insted of auth
+#       auth:
+#         authenticator: mtlsauth
+        middlewares:
+          - id: mtlsauth
         tls:
           client_ca_file: certs/client_ca.pem
           cert_file: certs/server.pem
@@ -24,7 +27,7 @@ processors:
   vardumpprocessor:
 extensions:
   mtlsauth:
-    require_cert: true
+    require_cert: true # default
 service:
   extensions:
     - mtlsauth
@@ -33,6 +36,12 @@ service:
       receivers: [otlp]
       exporters: [debug]
     traces:
+      ## grpc client example:
+      # OTEL_EXPORTER_OTLP_CLIENT_KEY=client-key.pem OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE=client.pem OTEL_CLI_TLS_NO_VERIFY=1 OTEL_EXPORTER_OTLP_ENDPOINT=https://localhost:4317 OTEL_EXPORTER_OTLP_PROTOCOL=grpc otel-cli span --name hoge --service geho
+      #
+      ## http client example:
+      # OTEL_EXPORTER_OTLP_CLIENT_KEY=client-key.pem OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE=client.pem OTEL_CLI_TLS_NO_VERIFY=1 OTEL_EXPORTER_OTLP_ENDPOINT=https://localhost:4318 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf otel-cli span --name hoge --service geho --verbose
+      #
       receivers: [otlp]
       processors: [vardumpprocessor]
       exporters: [debug]

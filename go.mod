@@ -7,6 +7,7 @@ require (
 	go.opentelemetry.io/collector/component v1.44.0
 	go.opentelemetry.io/collector/extension v1.44.0
 	go.opentelemetry.io/collector/extension/extensionauth v1.44.0
+	go.opentelemetry.io/collector/extension/extensionmiddleware v0.138.0
 	google.golang.org/grpc v1.76.0
 )
 

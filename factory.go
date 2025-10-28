@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"net/http"
 	"time"
 
 	"go.opentelemetry.io/collector/client"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/extension"
 	"go.opentelemetry.io/collector/extension/extensionauth"
+	"go.opentelemetry.io/collector/extension/extensionmiddleware"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 )
@@ -87,17 +89,36 @@ func (p PeerInfo) GetAttributeNames() []string {
 
 func (a MtlsAuth) Authenticate(ctx context.Context, headers map[string][]string) (context.Context, error) {
 	if peer, ok := peer.FromContext(ctx); ok {
+		// This is GRPC
 		if tlsInfo, ok := peer.AuthInfo.(credentials.TLSInfo); ok {
 			if len(tlsInfo.State.PeerCertificates) > 0 {
 				cl := client.FromContext(ctx)
 				cl.Auth = (*PeerInfo)(tlsInfo.State.PeerCertificates[0])
 				return client.NewContext(ctx, cl), nil
 			}
+		} else if a.RequireCert {
+			return ctx, fmt.Errorf("no peer certificate. forgot tls.client_ca_file?")
 		}
+	} else if httpServer := ctx.Value(http.ServerContextKey); httpServer != nil {
+		// This is HTTP
+		return ctx, fmt.Errorf("mtlsauth for https must be configured as http middleware in otelcol")
 	}
-	if a.RequireCert {
-		return ctx, fmt.Errorf("no peer certificate. forgot tls.client_ca_file?")
-	} else {
-		return ctx, nil
-	}
+	return ctx, nil
+}
+
+var _ extensionmiddleware.HTTPServer = MtlsAuth{}
+
+func (a MtlsAuth) GetHTTPHandler(handler http.Handler) (http.Handler, error) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+			ctx := r.Context()
+			cl := client.FromContext(ctx)
+			cl.Auth = (*PeerInfo)(r.TLS.PeerCertificates[0])
+			*r = *r.WithContext(client.NewContext(ctx, cl))
+		} else if a.RequireCert {
+			http.Error(w, "no peer certificate. forgot tls.client_ca_file in otelcol?", http.StatusUnauthorized)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}), nil
 }
