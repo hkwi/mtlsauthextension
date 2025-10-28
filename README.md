@@ -30,8 +30,8 @@ receivers:
         auth:
           authenticator: mtlsauth
       http:
-        auth:
-          authenticator: mtlsauth
+        middlewares:
+          - id: mtlsauth
 ```
 
 ## AuthData Structure
