@@ -106,6 +106,10 @@ func (a MtlsAuth) Authenticate(ctx context.Context, headers map[string][]string)
 	return ctx, nil
 }
 
+// With the current authextension interface, it is not possible to obtain the HTTPS TLS state.
+// Additionally, the middleware is placed inside the auth interceptor wrapper.
+// Therefore, gRPC and HTTPS inevitably have to operate using different mechanisms.
+
 var _ extensionmiddleware.HTTPServer = MtlsAuth{}
 
 func (a MtlsAuth) GetHTTPHandler(handler http.Handler) (http.Handler, error) {
